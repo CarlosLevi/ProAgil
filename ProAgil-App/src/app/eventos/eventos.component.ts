@@ -3,12 +3,12 @@ import { EventoService } from '../_services/evento.service';
 import { Evento } from '../_models/Evento';
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
-import { defineLocale } from 'ngx-bootstrap/chronos';
-import { BsLocaleService } from 'ngx-bootstrap/datepicker';
-import { ptBrLocale } from 'ngx-bootstrap/locale';
+//import { defineLocale } from 'ngx-bootstrap/chronos';
+//import { BsLocaleService } from 'ngx-bootstrap/datepicker';
+//import { ptBrLocale } from 'ngx-bootstrap/locale';
 import { ToastrService } from 'ngx-toastr';
 
-defineLocale('pt-br', ptBrLocale);
+//defineLocale('pt-br', ptBrLocale);
 
 @Component({
   selector: 'app-eventos',
@@ -28,6 +28,10 @@ export class EventosComponent implements OnInit {
   mostrarImagem = false;
   registerForm: FormGroup;
   bodyDeletarEvento = '';
+  dataAtual: string;
+
+  file: File;
+  fileNameToUpdate: string;
 
   _filtroLista: string;
 
@@ -35,10 +39,10 @@ export class EventosComponent implements OnInit {
       private eventoService: EventoService
     , private modalService: BsModalService
     , private fb: FormBuilder
-    , private localeService: BsLocaleService
+    //, private localeService: BsLocaleService
     , private toastr: ToastrService
   ) {
-    this.localeService.use('pt-br');
+    //this.localeService.use('pt-br');
   }
 
   get filtroLista(): string{
@@ -90,14 +94,50 @@ export class EventosComponent implements OnInit {
   editarEvento(evento: Evento, template: any){
     this.modoSalvar = 'put';
     this.openModal(template);
-    this.evento = evento;
-    this.registerForm.patchValue(evento);
+    this.evento = Object.assign({}, evento);
+    this.fileNameToUpdate = evento.imagemURL.toString();
+    this.evento.imagemURL = '';
+    this.registerForm.patchValue(this.evento);
+  }
+
+  onFileChange(event){
+    const reader = new FileReader();
+    if (event.target.files && event.target.files.length){
+      this.file = event.target.files;
+    }
+  }
+
+  uploadImagem(){
+    if (this.modoSalvar === 'post'){
+      const nomeArquivo = this.evento.imagemURL.split('\\', 3);
+      this.evento.imagemURL = nomeArquivo[2];
+
+      this.eventoService.postupload(this.file, nomeArquivo[2])
+      .subscribe(
+        () => {
+          this.dataAtual = new Date().getMilliseconds().toString();
+          this.getEventos();
+        }
+      );
+    } else {
+      this.evento.imagemURL = this.fileNameToUpdate;
+      this.eventoService.postupload(this.file, this.fileNameToUpdate)
+      .subscribe(
+        () => {
+          this.dataAtual = new Date().getMilliseconds().toString();
+          this.getEventos();
+        }
+      );
+    }
   }
 
   salvarAlteracao(template: any){
     if (this.registerForm.valid){
       if (this.modoSalvar === 'post'){
         this.evento = Object.assign({}, this.registerForm.value);
+
+        this.uploadImagem();
+
         this.eventoService.postEvento(this.evento).subscribe(
           (novoEvento: Evento) => {
             template.hide();
@@ -110,6 +150,9 @@ export class EventosComponent implements OnInit {
         );
       } else {
         this.evento = Object.assign({id: this.evento.id}, this.registerForm.value);
+
+        this.uploadImagem();
+
         this.eventoService.putEvento(this.evento).subscribe(
           () => {
             template.hide();

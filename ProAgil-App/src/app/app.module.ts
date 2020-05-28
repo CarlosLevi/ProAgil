@@ -42,7 +42,6 @@ import { DateTimeFormatPipePipe } from './_helps/DateTimeFormatPipe.pipe';
       BsDatepickerModule.forRoot(),
       ToastrModule.forRoot({
          timeOut: 3000,
-         positionClass: 'toast-bottom-right',
          preventDuplicates: true,
          progressBar: true
       }),
